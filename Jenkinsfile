@@ -4,6 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "vedantga/canteen-management-system"
         IMAGE_TAG = "${BUILD_NUMBER}"
+        EC2_HOST   = "15.206.73.198"
     }
 
     stages {
@@ -30,24 +31,24 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sh 'docker push $IMAGE_NAME:$IMAGE_TAG'
-                    sh 'docker push $IMAGE_NAME:latest'
+                    sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push $IMAGE_NAME:$IMAGE_TAG
+                        docker push $IMAGE_NAME:latest
+                    '''
                 }
             }
         }
 
         stage('Deploy to EC2') {
             steps {
-                withCredentials([file(credentialsId: 'ec2-pem', variable: 'PEM_FILE')]) {
+                sshagent(credentials: ['ec2-key']) {
                     sh '''
-                        chmod 400 $PEM_FILE
-
-                        ssh -o StrictHostKeyChecking=no -i $PEM_FILE ubuntu@15.206.73.198 "
-                            docker pull vedantga/canteen-management-system:latest &&
+                        ssh -o StrictHostKeyChecking=no ubuntu@$EC2_HOST "
+                            docker pull $IMAGE_NAME:latest &&
                             docker stop app || true &&
                             docker rm app || true &&
-                            docker run -d -p 80:80 --name app vedantga/canteen-management-system:latest
+                            docker run -d --restart unless-stopped -p 80:80 --name app $IMAGE_NAME:latest
                         "
                     '''
                 }
