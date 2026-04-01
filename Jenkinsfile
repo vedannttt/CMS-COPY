@@ -12,41 +12,13 @@ pipeline {
             steps {
                 // REPLACE the URL below with your actual GitHub repository URL
                 git branch: 'main',
-                    url: 'https://github.com/vedannttt/CMS-COPY'
-            }
-        }
-
-        stage('Install Dependencies') {
-            agent {
-                docker {
-                    image 'node:20-alpine'
-                    args '-u root:root'
-                }
-            }
-            steps {
-                // Tells Jenkins to go into the frontend folder before running npm
-                dir('frontend') {
-                    sh 'npm install'
-                }
-            }
-        }
-
-        stage('Build App') {
-            agent {
-                docker {
-                    image 'node:20-alpine'
-                    args '-u root:root'
-                }
-            }
-            steps {
-                dir('frontend') {
-                    sh 'npm run build'
-                }
+                    url: 'https://github.com/vedannttt/CMS-COPY.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
+                // We let the Dockerfile handle npm install and build!
                 dir('frontend') {
                     sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
                     sh 'docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest'
