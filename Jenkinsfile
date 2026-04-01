@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // REPLACE 'yourdockerhubusername' with your actual Docker Hub username
         IMAGE_NAME = "vedantga/canteen-management-system"
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
@@ -10,7 +9,6 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // REPLACE the URL below with your actual GitHub repository URL
                 git branch: 'main',
                     url: 'https://github.com/vedannttt/CMS-COPY.git'
             }
@@ -18,7 +16,6 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                // We let the Dockerfile handle npm install and build!
                 dir('frontend') {
                     sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
                     sh 'docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest'
@@ -40,20 +37,21 @@ pipeline {
             }
         }
 
-       stage('Deploy to EC2') {
-    withCredentials([file(credentialsId: 'ec2-pem', variable: 'PEM_FILE')]) {
-        sh '''
-        chmod 400 $PEM_FILE
+        stage('Deploy to EC2') {
+            steps {
+                withCredentials([file(credentialsId: 'ec2-pem', variable: 'PEM_FILE')]) {
+                    sh '''
+                        chmod 400 $PEM_FILE
 
-        ssh -o StrictHostKeyChecking=no -i $PEM_FILE ubuntu@15.206.73.198 "
-            docker pull vedantga/canteen-management-system:latest &&
-            docker stop app || true &&
-            docker rm app || true &&
-            docker run -d -p 80:80 --name app vedantga/canteen-management-system:latest
-        "
-        '''
-    }
-}
+                        ssh -o StrictHostKeyChecking=no -i $PEM_FILE ubuntu@15.206.73.198 "
+                            docker pull vedantga/canteen-management-system:latest &&
+                            docker stop app || true &&
+                            docker rm app || true &&
+                            docker run -d -p 80:80 --name app vedantga/canteen-management-system:latest
+                        "
+                    '''
+                }
+            }
         }
     }
 
@@ -62,3 +60,4 @@ pipeline {
             cleanWs()
         }
     }
+}
