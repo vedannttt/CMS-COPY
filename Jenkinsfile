@@ -40,20 +40,20 @@ pipeline {
             }
         }
 
-        stage('Deploy to EC2') {
-            steps {
-                sshagent(['ec2-ssh-key']) {
-                    // REPLACE 'YOUR_EC2_PUBLIC_IP' with your actual AWS EC2 Public IPv4 address
-                    sh '''
-                    ssh -o StrictHostKeyChecking=no ubuntu@15.206.73.198 "
-                      docker pull $IMAGE_NAME:latest &&
-                      docker stop canteen-app || true &&
-                      docker rm canteen-app || true &&
-                      docker run -d --name canteen-app -p 80:80 $IMAGE_NAME:latest
-                    "
-                    '''
-                }
-            }
+       stage('Deploy to EC2') {
+    withCredentials([file(credentialsId: 'ec2-pem', variable: 'PEM_FILE')]) {
+        sh '''
+        chmod 400 $PEM_FILE
+
+        ssh -o StrictHostKeyChecking=no -i $PEM_FILE ubuntu@15.206.73.198 "
+            docker pull vedantga/canteen-management-system:latest &&
+            docker stop app || true &&
+            docker rm app || true &&
+            docker run -d -p 80:80 --name app vedantga/canteen-management-system:latest
+        "
+        '''
+    }
+}
         }
     }
 
